@@ -1,0 +1,1911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Notebook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #eef1f6;
+      --surface: #ffffff;
+      --surface2: #f0f3f8;
+      --border: #d4dce8;
+      --text: #1a2332;
+      --muted: #5c6b7e;
+      --accent: #2563eb;
+      --accent-dim: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+      --radius: 10px;
+      --font: "DM Sans", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.06) 50%, rgba(14, 165, 233, 0.08) 100%);
+    }
+    .sidebar-header-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .app-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6 45%, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+    }
+    .app-logo svg { width: 20px; height: 20px; color: #fff; }
+    .sidebar-header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #4338ca, #7c3aed 40%, #db2777);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .sidebar-header p {
+      margin: 0.35rem 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .nav-section {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem 0.5rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .nav-section-title .title-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .section-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .section-icon svg { width: 12px; height: 12px; }
+    .section-icon.topics { background: rgba(99, 102, 241, 0.18); color: #4f46e5; }
+    .section-icon.persons { background: rgba(168, 85, 247, 0.2); color: #7c3aed; }
+    .nav-section-title button {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .nav-section-title button.nav-add-topic:hover {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+    .nav-section-title button.nav-add-person:hover {
+      background: #a855f7;
+      border-color: #a855f7;
+      color: #fff;
+    }
+    .nav-list {
+      list-style: none;
+      margin: 0;
+      padding: 0 0.5rem;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .nav-list.persons { max-height: 200px; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border: 1px solid transparent;
+      border-left: 3px solid transparent;
+    }
+    .nav-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.95);
+    }
+    .nav-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nav-item:hover { background: var(--surface2); }
+    .nav-item.active {
+      background: var(--surface2);
+      border-color: var(--border);
+      border-left-color: var(--item-accent, var(--accent));
+      color: var(--text);
+      font-weight: 600;
+    }
+    .nav-item .delete-mini {
+      margin-left: auto;
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 0.85rem;
+    }
+    .nav-item:hover .delete-mini { opacity: 1; }
+    .delete-mini:hover { color: var(--danger); }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .action-items-link {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #047857;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      width: 100%;
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+    }
+    .action-items-link .ai-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+    }
+    .action-items-link .ai-icon svg { width: 12px; height: 12px; color: #fff; }
+    .action-items-link:hover, .action-items-link.active {
+      border-color: #10b981;
+      color: #065f46;
+      box-shadow: 0 2px 12px rgba(16, 185, 129, 0.2);
+    }
+    .action-items-link.active {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(6, 182, 212, 0.12));
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+      transition: box-shadow 0.2s ease;
+    }
+    .main.has-accent-stripe {
+      box-shadow: inset 5px 0 0 0 var(--accent-stripe, var(--accent));
+    }
+    .main-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .main-toolbar h2 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      flex: 1;
+      min-width: 120px;
+    }
+    .btn {
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--border); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+    .btn-danger { border-color: var(--danger); color: var(--danger); }
+    .btn-danger:hover { background: rgba(220, 38, 38, 0.1); }
+
+    .main-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+
+    .panel { display: none; }
+    .panel.visible { display: block; }
+
+    /* Quill */
+    .editor-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .editor-wrap .ql-toolbar {
+      border-color: var(--border) !important;
+      background: var(--surface2);
+    }
+    .editor-wrap .ql-container {
+      border-color: var(--border) !important;
+      min-height: 220px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: var(--surface);
+    }
+    .ql-snow .ql-stroke { stroke: #64748b !important; }
+    .ql-snow .ql-fill { fill: #64748b !important; }
+    .ql-snow .ql-picker { color: #475569 !important; }
+    .ql-snow .ql-picker-options { background: var(--surface) !important; border-color: var(--border) !important; }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 1rem 0 0.5rem;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    .main.has-accent-stripe .main-body .section-label {
+      border-left: 3px solid var(--accent-stripe);
+      padding-left: 0.55rem;
+      margin-left: 1px;
+    }
+
+    .action-item-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .action-item-row input[type="checkbox"] {
+      margin-top: 0.25rem;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .action-item-row label {
+      flex: 1;
+      cursor: pointer;
+      line-height: 1.45;
+    }
+    .action-item-row.done label {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .action-item-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .add-action {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .add-action input {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(37, 99, 235, 0.06);
+    }
+    .attachment-list {
+      list-style: none;
+      margin: 0 0 1rem;
+      padding: 0;
+    }
+    .attachment-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.65rem;
+      background: var(--surface2);
+      border-radius: 8px;
+      margin-bottom: 0.35rem;
+      font-size: 0.88rem;
+    }
+    .attachment-list a { color: var(--accent); text-decoration: none; }
+    .attachment-list a:hover { text-decoration: underline; }
+    .attachment-list button.remove-att {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .attachment-list button.remove-att:hover { color: var(--danger); }
+
+    .entry-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: var(--surface2);
+    }
+    .entry-card-preview {
+      font-size: 0.9rem;
+      color: var(--text);
+      line-height: 1.45;
+      max-height: 6.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .entry-card-preview::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2rem;
+      background: linear-gradient(transparent, var(--surface2));
+    }
+    .entry-card-preview p { margin: 0 0 0.35rem; }
+    .entry-card-preview ul, .entry-card-preview ol { margin: 0.25rem 0; padding-left: 1.25rem; }
+    .entry-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .global-ai-group {
+      margin-bottom: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+      border-left-color: var(--group-accent, var(--accent));
+    }
+    .global-ai-group h3 {
+      margin: 0 0 0.75rem;
+      font-size: 0.85rem;
+      color: var(--text);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .global-ai-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px var(--surface);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      text-align: center;
+      padding: 3rem 1rem;
+      font-size: 0.95rem;
+    }
+
+    /* Welcome / home panel */
+    .welcome-quote {
+      margin: 0 0 1.5rem;
+      padding: 1.1rem 1.25rem;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.08));
+      border-radius: var(--radius);
+      border-left: 4px solid #8b5cf6;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    .welcome-quote blockquote {
+      margin: 0;
+      font-size: 1.05rem;
+      font-style: italic;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .welcome-quote cite {
+      display: block;
+      margin-top: 0.65rem;
+      font-size: 0.8rem;
+      font-style: normal;
+      color: var(--muted);
+    }
+    .welcome-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .welcome-grid { grid-template-columns: 1fr; }
+    }
+    .welcome-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.25rem;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    }
+    .welcome-card h3 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .welcome-card h3 .wc-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .welcome-card h3 .wc-icon svg { width: 14px; height: 14px; color: #fff; }
+    .welcome-card h3 .wc-icon.topics-bg { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .welcome-card h3 .wc-icon.actions-bg { background: linear-gradient(135deg, #10b981, #06b6d4); }
+    .welcome-card .hint {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .welcome-card .welcome-actions-footer {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .welcome-ai-meta {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    .welcome-ai-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .welcome-ai-row > input[type="checkbox"] { flex-shrink: 0; }
+    .welcome-ai-row:last-child { border-bottom: none; }
+    .welcome-ai-row .w-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 0.35rem;
+      flex-shrink: 0;
+    }
+    .welcome-ai-row label {
+      flex: 1;
+      cursor: pointer;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+    .welcome-ai-row input[type="checkbox"] {
+      margin-top: 0.3rem;
+      width: 17px;
+      height: 17px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .welcome-ai-row.done label {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+    .sidebar-header-row.click-home { cursor: pointer; }
+    .sidebar-header-row.click-home:hover .sidebar-header h1 { opacity: 0.85; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .modal h3 { margin: 0 0 1rem; font-size: 1rem; }
+    .modal input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      margin-bottom: 1rem;
+    }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+    input[name="rename-topic"] {
+      max-width: 280px;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface2);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    @media (max-width: 720px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; min-width: 0; max-height: 40vh; }
+      .nav-list { max-height: 100px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-header-row click-home" id="btnGoHome" title="Back to welcome">
+        <div class="app-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </div>
+        <div>
+          <h1>Meeting Notebook</h1>
+          <p>Topics, 1:1s, action items</p>
+        </div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">
+        <span class="title-with-icon">
+          <span class="section-icon topics" title="Topics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"/></svg>
+          </span>
+          Topics
+        </span>
+        <button type="button" class="nav-add-topic" id="btnAddTopic" title="Add topic">+</button>
+      </div>
+      <ul class="nav-list" id="topicList"></ul>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title">
+        <span class="title-with-icon">
+          <span class="section-icon persons" title="1:1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="7" r="2.5"/><path d="M3 21v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M17 11a3 3 0 0 1 3 3v1"/></svg>
+          </span>
+          1:1 meetings
+        </span>
+        <button type="button" class="nav-add-person" id="btnAddPerson" title="Add person">+</button>
+      </div>
+      <ul class="nav-list persons" id="personList"></ul>
+    </div>
+    <div class="sidebar-footer">
+      <button type="button" class="action-items-link" id="btnActionItemsPage">
+        <span class="ai-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </span>
+        Action items
+      </button>
+    </div>
+  </aside>
+
+  <main class="main" id="mainApp">
+    <div class="main-toolbar" id="toolbarTopic" style="display:none;">
+      <h2><input type="text" name="rename-topic" id="topicTitleInput" placeholder="Topic name" /></h2>
+      <button type="button" class="btn" id="btnCopyTopic">Copy text</button>
+      <button type="button" class="btn btn-primary" id="btnSaveTopic">Save</button>
+      <button type="button" class="btn btn-danger" id="btnDeleteTopic">Delete topic</button>
+    </div>
+    <div class="main-toolbar" id="toolbarPerson" style="display:none;">
+      <h2 id="personTitleDisplay"></h2>
+      <button type="button" class="btn" id="btnCopyPerson">Copy text</button>
+      <button type="button" class="btn btn-primary" id="btnSavePerson">Save</button>
+      <button type="button" class="btn" id="btnAddOneOnOne">New 1:1 note</button>
+      <button type="button" class="btn btn-danger" id="btnDeletePerson">Delete person</button>
+    </div>
+    <div class="main-toolbar" id="toolbarEntry" style="display:none;">
+      <h2 id="entryBreadcrumb"></h2>
+      <button type="button" class="btn" id="btnCopyEntry">Copy text</button>
+      <button type="button" class="btn btn-primary" id="btnSaveEntry">Save note</button>
+      <button type="button" class="btn btn-danger" id="btnDeleteEntry">Delete note</button>
+    </div>
+    <div class="main-toolbar" id="toolbarActions" style="display:none;">
+      <h2>All action items</h2>
+      <span style="color:var(--muted);font-size:0.85rem;">From topics and 1:1 notes</span>
+    </div>
+    <div class="main-toolbar" id="toolbarEmpty" style="display:flex;">
+      <h2>Welcome</h2>
+      <span style="color:var(--muted);font-size:0.85rem;">Start a topic, check your tasks, or pick something in the sidebar</span>
+    </div>
+
+    <div class="main-body">
+      <div class="panel visible" id="panelEmpty">
+        <div class="welcome-quote">
+          <blockquote id="welcomeQuoteText"></blockquote>
+          <cite id="welcomeQuoteAuthor"></cite>
+        </div>
+        <div class="welcome-grid">
+          <div class="welcome-card">
+            <h3>
+              <span class="wc-icon topics-bg" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z"/></svg>
+              </span>
+              Start a new topic
+            </h3>
+            <p class="hint">Create a space for meeting notes and follow-ups. You can rename and edit after opening.</p>
+            <div class="add-action" style="margin-top:0;">
+              <input type="text" id="welcomeNewTopicName" placeholder="Topic name…" />
+              <button type="button" class="btn btn-primary" id="btnWelcomeCreateTopic">Create topic</button>
+            </div>
+            <p class="hint" style="margin-top:0.75rem;margin-bottom:0;">More topics and 1:1s live in the sidebar.</p>
+          </div>
+          <div class="welcome-card">
+            <h3>
+              <span class="wc-icon actions-bg" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </span>
+              Your action items
+            </h3>
+            <p class="hint">Open tasks from topics and 1:1s. Checking a box saves everywhere.</p>
+            <div id="welcomeActionItems"></div>
+            <div class="welcome-actions-footer">
+              <button type="button" class="btn btn-primary" id="btnWelcomeViewAllActions">View all</button>
+              <span class="hint" id="welcomeActionMore" style="margin:0;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" id="panelTopic">
+        <div class="section-label">Notes</div>
+        <div class="editor-wrap"><div id="editorTopic"></div></div>
+        <div class="section-label">Attachments</div>
+        <div class="dropzone" id="dropzoneTopic" tabindex="0">Drop files here or click to attach</div>
+        <input type="file" id="fileInputTopic" multiple hidden />
+        <ul class="attachment-list" id="attachmentsTopic"></ul>
+        <div class="section-label">Action items (added here appear in Action items)</div>
+        <div id="actionItemsTopic"></div>
+        <div class="add-action">
+          <input type="text" id="newActionTopic" placeholder="Add action item..." />
+          <button type="button" class="btn btn-primary" id="btnAddActionTopic">Add</button>
+        </div>
+      </div>
+      <div class="panel" id="panelPerson">
+        <div class="section-label">About this person (notes)</div>
+        <div class="editor-wrap"><div id="editorPerson"></div></div>
+        <div class="section-label">Attachments</div>
+        <div class="dropzone" id="dropzonePerson" tabindex="0">Drop files here or click to attach</div>
+        <input type="file" id="fileInputPerson" multiple hidden />
+        <ul class="attachment-list" id="attachmentsPerson"></ul>
+        <div class="section-label">Action items (appear in Action items)</div>
+        <div id="actionItemsPerson"></div>
+        <div class="add-action">
+          <input type="text" id="newActionPerson" placeholder="Add action item..." />
+          <button type="button" class="btn btn-primary" id="btnAddActionPerson">Add</button>
+        </div>
+        <div class="section-label" style="margin-top:1.5rem;">Meeting notes</div>
+        <div id="personEntriesList"></div>
+      </div>
+      <div class="panel" id="panelEntry">
+        <div class="section-label">1:1 summary</div>
+        <div class="editor-wrap"><div id="editorEntry"></div></div>
+        <div class="section-label">Attachments</div>
+        <div class="dropzone" id="dropzoneEntry" tabindex="0">Drop files here or click to attach</div>
+        <input type="file" id="fileInputEntry" multiple hidden />
+        <ul class="attachment-list" id="attachmentsEntry"></ul>
+        <div class="section-label">Action items</div>
+        <div id="actionItemsEntry"></div>
+        <div class="add-action">
+          <input type="text" id="newActionEntry" placeholder="Add action item..." />
+          <button type="button" class="btn btn-primary" id="btnAddActionEntry">Add</button>
+        </div>
+      </div>
+      <div class="panel" id="panelActions">
+        <div id="globalActionItems"></div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h3 id="modalTitle">Name</h3>
+      <input type="text" id="modalInput" placeholder="Enter name" />
+      <div class="modal-actions">
+        <button type="button" class="btn" id="modalCancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modalOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <script>
+(function () {
+  const DB_NAME = "meetingNotebookDB";
+  const DB_VERSION = 1;
+
+  let db = null;
+  let quillTopic = null;
+  let quillEntry = null;
+  let quillPerson = null;
+  let currentTopicId = null;
+  let currentPersonId = null;
+  let currentEntryId = null;
+  let viewMode = "empty"; // empty | topic | person | entry | actions
+
+  const $ = (id) => document.getElementById(id);
+
+  const TOPIC_COLORS = [
+    "#6366f1", "#8b5cf6", "#ec4899", "#f43f5e", "#f97316",
+    "#ca8a04", "#22c55e", "#14b8a6", "#06b6d4", "#3b82f6", "#a855f7"
+  ];
+  const PERSON_COLORS = [
+    "#0ea5e9", "#d946ef", "#f472b6", "#fb7185", "#34d399",
+    "#2dd4bf", "#38bdf8", "#818cf8", "#f59e0b", "#10b981", "#7c3aed"
+  ];
+  const ACTIONS_STRIPE = "#10b981";
+  const WELCOME_AI_CAP = 12;
+
+  const INSPIRATIONAL_QUOTES = [
+    { text: "Well done is better than well said.", author: "Benjamin Franklin" },
+    { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+    { text: "Small deeds done are better than great deeds planned.", author: "Peter Marshall" },
+    { text: "You miss 100% of the shots you don’t take.", author: "Wayne Gretzky" },
+    { text: "It always seems impossible until it’s done.", author: "Nelson Mandela" },
+    { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+    { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+    { text: "Done is better than perfect.", author: "Sheryl Sandberg" },
+    { text: "Start where you are. Use what you have. Do what you can.", author: "Arthur Ashe" },
+    { text: "A year from now you may wish you had started today.", author: "Karen Lamb" },
+    { text: "Progress, not perfection.", author: "" },
+    { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+    { text: "What we plant in the soil of contemplation, we shall reap in the harvest of action.", author: "Meister Eckhart" },
+    { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+    { text: "You don’t have to be great to start, but you have to start to be great.", author: "Zig Ziglar" },
+    { text: "An ounce of action is worth a ton of theory.", author: "Ralph Waldo Emerson" },
+    { text: "The only impossible journey is the one you never begin.", author: "Tony Robbins" },
+    { text: "Someday is not a day of the week.", author: "Denise Brennan-Nelson" },
+    { text: "Your limitation—it’s only your imagination.", author: "" },
+    { text: "Great things never come from comfort zones.", author: "" },
+    { text: "Dream big. Start small. Act now.", author: "Robin Sharma" },
+    { text: "Don’t count the days; make the days count.", author: "Muhammad Ali" },
+    { text: "If you want to lift yourself up, lift up someone else.", author: "Booker T. Washington" },
+    { text: "I have not failed. I’ve just found 10,000 ways that won’t work.", author: "Thomas Edison" },
+    { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese proverb" },
+    { text: "Only those who dare to fail greatly can ever achieve greatly.", author: "Robert F. Kennedy" },
+    { text: "Quality means doing it right when no one is looking.", author: "Henry Ford" },
+    { text: "What you do every day matters more than what you do once in a while.", author: "Gretchen Rubin" },
+    { text: "Courage doesn’t always roar. Sometimes it’s the quiet voice at the end of the day saying I’ll try again tomorrow.", author: "Mary Anne Radmacher" },
+    { text: "Be kind whenever possible. It is always possible.", author: "Dalai Lama" },
+    { text: "Success is the sum of small efforts repeated day in and day out.", author: "Robert Collier" },
+    { text: "If you think you can do a thing or think you can’t do a thing, you’re right.", author: "Henry Ford" },
+    { text: "The man who moves a mountain begins by carrying away small stones.", author: "Confucius" },
+    { text: "Do what you can, with what you have, where you are.", author: "Theodore Roosevelt" },
+    { text: "Everything you’ve ever wanted is on the other side of fear.", author: "George Addair" },
+    { text: "Opportunities don’t happen. You create them.", author: "Chris Grosser" },
+    { text: "Hard choices, easy life. Easy choices, hard life.", author: "Jerzy Gregorek" },
+    { text: "Discipline is choosing between what you want now and what you want most.", author: "" },
+    { text: "The question isn’t who is going to let me; it’s who is going to stop me.", author: "Ayn Rand" },
+    { text: "Fall seven times and stand up eight.", author: "Japanese proverb" },
+    { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
+    { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci" }
+  ];
+
+  function quoteIndexForToday() {
+    const d = new Date();
+    const key = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+    let h = 0;
+    for (let i = 0; i < key.length; i++) {
+      h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    return h % INSPIRATIONAL_QUOTES.length;
+  }
+
+  function renderDailyQuote() {
+    const q = INSPIRATIONAL_QUOTES[quoteIndexForToday()];
+    $("welcomeQuoteText").textContent = q.text;
+    const cite = $("welcomeQuoteAuthor");
+    if (q.author) {
+      cite.textContent = "— " + q.author;
+      cite.style.display = "block";
+    } else {
+      cite.textContent = "";
+      cite.style.display = "none";
+    }
+  }
+
+  function actionItemPresentation(item, topicMap, entryMap, personMap) {
+    let label;
+    let color = "#6366f1";
+    if (item.sourceType === "topic") {
+      label = "Topic · " + (topicMap[item.sourceId]?.name || "Unknown");
+      color = colorForId(item.sourceId, TOPIC_COLORS);
+    } else if (item.sourceType === "person") {
+      label = "1:1 profile · " + (personMap[item.sourceId]?.name || "Person");
+      color = colorForId(item.sourceId, PERSON_COLORS);
+    } else {
+      const en = entryMap[item.sourceId];
+      const pn = en ? personMap[en.personId]?.name : null;
+      label = "1:1 note · " + (pn || "Person");
+      color = en ? colorForId(en.personId, PERSON_COLORS) : "#64748b";
+    }
+    return { label, color };
+  }
+
+  async function renderWelcomeActionItems() {
+    const wrap = $("welcomeActionItems");
+    const moreEl = $("welcomeActionMore");
+    if (!wrap) return;
+    const topics = await getAll("topics");
+    const persons = await getAll("persons");
+    const entries = await getAll("oneOnOneEntries");
+    const actions = await getAll("actionItems");
+    const topicMap = Object.fromEntries(topics.map((t) => [t.id, t]));
+    const entryMap = Object.fromEntries(entries.map((e) => [e.id, e]));
+    const personMap = Object.fromEntries(persons.map((p) => [p.id, p]));
+
+    const open = actions.filter((a) => !a.done).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const totalOpen = open.length;
+    const slice = open.slice(0, WELCOME_AI_CAP);
+
+    if (totalOpen === 0) {
+      wrap.innerHTML = '<p class="hint" style="margin:0;">No open action items. Add some from a topic or a 1:1 note.</p>';
+      moreEl.textContent = "";
+      return;
+    }
+
+    wrap.innerHTML = "";
+    slice.forEach((item) => {
+      const { label, color } = actionItemPresentation(item, topicMap, entryMap, personMap);
+      const row = document.createElement("div");
+      row.className = "welcome-ai-row";
+      const dot = document.createElement("span");
+      dot.className = "w-dot";
+      dot.style.backgroundColor = color;
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = "wcb-" + item.id;
+      const textWrap = document.createElement("div");
+      textWrap.style.flex = "1";
+      textWrap.style.minWidth = "0";
+      textWrap.style.display = "flex";
+      textWrap.style.flexDirection = "column";
+      textWrap.style.gap = "0.15rem";
+      const lab = document.createElement("label");
+      lab.htmlFor = "wcb-" + item.id;
+      lab.textContent = item.text;
+      const meta = document.createElement("div");
+      meta.className = "welcome-ai-meta";
+      meta.textContent = label;
+      textWrap.appendChild(lab);
+      textWrap.appendChild(meta);
+      row.appendChild(dot);
+      row.appendChild(cb);
+      row.appendChild(textWrap);
+      cb.addEventListener("change", async () => {
+        item.done = cb.checked;
+        await put("actionItems", item);
+        if (viewMode === "actions") await renderGlobalActionItems();
+        await renderWelcomeActionItems();
+      });
+      wrap.appendChild(row);
+    });
+
+    if (totalOpen > WELCOME_AI_CAP) {
+      moreEl.textContent = "Showing " + WELCOME_AI_CAP + " of " + totalOpen + " open.";
+    } else {
+      moreEl.textContent = totalOpen === 1 ? "1 open item." : totalOpen + " open items.";
+    }
+  }
+
+  async function renderWelcomePanel() {
+    if (viewMode !== "empty") return;
+    renderDailyQuote();
+    await renderWelcomeActionItems();
+  }
+
+  function colorForId(str, palette) {
+    if (!str) return palette[0];
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return palette[Math.abs(h) % palette.length];
+  }
+
+  function updateMainStripe() {
+    const main = $("mainApp");
+    if (!main) return;
+    if (viewMode === "topic" && currentTopicId) {
+      main.classList.add("has-accent-stripe");
+      main.style.setProperty("--accent-stripe", colorForId(currentTopicId, TOPIC_COLORS));
+    } else if (viewMode === "person" && currentPersonId) {
+      main.classList.add("has-accent-stripe");
+      main.style.setProperty("--accent-stripe", colorForId(currentPersonId, PERSON_COLORS));
+    } else if (viewMode === "entry" && currentPersonId) {
+      main.classList.add("has-accent-stripe");
+      main.style.setProperty("--accent-stripe", colorForId(currentPersonId, PERSON_COLORS));
+    } else if (viewMode === "actions") {
+      main.classList.add("has-accent-stripe");
+      main.style.setProperty("--accent-stripe", ACTIONS_STRIPE);
+    } else {
+      main.classList.remove("has-accent-stripe");
+      main.style.removeProperty("--accent-stripe");
+    }
+  }
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => {
+        db = req.result;
+        resolve(db);
+      };
+      req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains("topics")) {
+          d.createObjectStore("topics", { keyPath: "id" });
+        }
+        if (!d.objectStoreNames.contains("persons")) {
+          d.createObjectStore("persons", { keyPath: "id" });
+        }
+        if (!d.objectStoreNames.contains("oneOnOneEntries")) {
+          d.createObjectStore("oneOnOneEntries", { keyPath: "id" });
+        }
+        if (!d.objectStoreNames.contains("actionItems")) {
+          d.createObjectStore("actionItems", { keyPath: "id" });
+        }
+        if (!d.objectStoreNames.contains("attachments")) {
+          d.createObjectStore("attachments", { keyPath: "id" });
+        }
+      };
+    });
+  }
+
+  function tx(storeNames, mode) {
+    return db.transaction(storeNames, mode);
+  }
+
+  function getAll(storeName) {
+    return new Promise((resolve, reject) => {
+      const t = tx([storeName], "readonly");
+      const r = t.objectStore(storeName).getAll();
+      r.onsuccess = () => resolve(r.result || []);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  function put(storeName, obj) {
+    return new Promise((resolve, reject) => {
+      const t = tx([storeName], "readwrite");
+      const r = t.objectStore(storeName).put(obj);
+      r.onsuccess = () => resolve(obj);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  function del(storeName, id) {
+    return new Promise((resolve, reject) => {
+      const t = tx([storeName], "readwrite");
+      const r = t.objectStore(storeName).delete(id);
+      r.onsuccess = () => resolve();
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  function get(storeName, id) {
+    return new Promise((resolve, reject) => {
+      const t = tx([storeName], "readonly");
+      const r = t.objectStore(storeName).get(id);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+
+  function uid() {
+    return crypto.randomUUID();
+  }
+
+  function stripHtml(html) {
+    const d = document.createElement("div");
+    d.innerHTML = html || "";
+    return d.innerText || d.textContent || "";
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+  }
+
+  const toolbarOptions = [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["blockquote", "code-block"],
+    ["link"],
+    ["clean"]
+  ];
+
+  function ensureQuillTopic() {
+    if (!quillTopic) {
+      quillTopic = new Quill("#editorTopic", {
+        theme: "snow",
+        modules: { toolbar: toolbarOptions }
+      });
+    }
+    return quillTopic;
+  }
+
+  function ensureQuillEntry() {
+    if (!quillEntry) {
+      quillEntry = new Quill("#editorEntry", {
+        theme: "snow",
+        modules: { toolbar: toolbarOptions }
+      });
+    }
+    return quillEntry;
+  }
+
+  function ensureQuillPerson() {
+    if (!quillPerson) {
+      quillPerson = new Quill("#editorPerson", {
+        theme: "snow",
+        modules: { toolbar: toolbarOptions }
+      });
+    }
+    return quillPerson;
+  }
+
+  function showToolbar(which) {
+    ["toolbarTopic", "toolbarPerson", "toolbarEntry", "toolbarActions", "toolbarEmpty"].forEach((id) => {
+      const el = $(id);
+      el.style.display = id === which ? "flex" : "none";
+    });
+  }
+
+  function showPanel(which) {
+    document.querySelectorAll(".main-body .panel").forEach((p) => {
+      p.classList.toggle("visible", p.id === which);
+    });
+  }
+
+  function setView(mode) {
+    viewMode = mode;
+    if (mode === "empty") {
+      showToolbar("toolbarEmpty");
+      showPanel("panelEmpty");
+      currentTopicId = null;
+      currentPersonId = null;
+      currentEntryId = null;
+    } else if (mode === "topic") {
+      showToolbar("toolbarTopic");
+      showPanel("panelTopic");
+    } else if (mode === "person") {
+      showToolbar("toolbarPerson");
+      showPanel("panelPerson");
+    } else if (mode === "entry") {
+      showToolbar("toolbarEntry");
+      showPanel("panelEntry");
+    } else if (mode === "actions") {
+      showToolbar("toolbarActions");
+      showPanel("panelActions");
+    }
+    document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+    document.getElementById("btnActionItemsPage").classList.toggle("active", mode === "actions");
+    updateMainStripe();
+    if (mode === "empty") {
+      renderWelcomePanel().catch((e) => console.error(e));
+    }
+  }
+
+  async function renderSidebar() {
+    const topics = await getAll("topics");
+    const persons = await getAll("persons");
+    topics.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    persons.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+    const tl = $("topicList");
+    tl.innerHTML = "";
+    topics.forEach((t) => {
+      const li = document.createElement("li");
+      const tc = colorForId(t.id, TOPIC_COLORS);
+      li.style.setProperty("--item-accent", tc);
+      li.className = "nav-item" + (currentTopicId === t.id && viewMode === "topic" ? " active" : "");
+      li.dataset.id = t.id;
+      li.innerHTML = `<span class="nav-dot" style="background-color:${tc}" title="Topic color"></span><span class="nav-item-text">${escapeHtml(t.name || "Untitled")}</span><button type="button" class="delete-mini" data-del-topic="${t.id}" title="Delete">×</button>`;
+      li.addEventListener("click", (e) => {
+        if (e.target.closest(".delete-mini")) return;
+        selectTopic(t.id);
+      });
+      tl.appendChild(li);
+    });
+
+    const pl = $("personList");
+    pl.innerHTML = "";
+    persons.forEach((p) => {
+      const li = document.createElement("li");
+      const pc = colorForId(p.id, PERSON_COLORS);
+      li.style.setProperty("--item-accent", pc);
+      li.className = "nav-item" + (currentPersonId === p.id && (viewMode === "person" || viewMode === "entry") ? " active" : "");
+      li.dataset.id = p.id;
+      li.innerHTML = `<span class="nav-dot" style="background-color:${pc}" title="Person color"></span><span class="nav-item-text">${escapeHtml(p.name || "Person")}</span><button type="button" class="delete-mini" data-del-person="${p.id}" title="Delete">×</button>`;
+      li.addEventListener("click", (e) => {
+        if (e.target.closest(".delete-mini")) return;
+        selectPerson(p.id);
+      });
+      pl.appendChild(li);
+    });
+
+    tl.querySelectorAll("[data-del-topic]").forEach((b) => {
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteTopicConfirm(b.dataset.delTopic);
+      });
+    });
+    pl.querySelectorAll("[data-del-person]").forEach((b) => {
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deletePersonConfirm(b.dataset.delPerson);
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  async function selectTopic(id) {
+    currentTopicId = id;
+    currentPersonId = null;
+    currentEntryId = null;
+    const topic = await get("topics", id);
+    if (!topic) return;
+    setView("topic");
+    await new Promise((r) => requestAnimationFrame(r));
+    $("topicTitleInput").value = topic.name || "";
+    ensureQuillTopic().root.innerHTML = topic.content || "";
+    await renderSidebar();
+    await renderAttachmentsTopic();
+    await renderActionItemsForSource("topic", id, $("actionItemsTopic"));
+  }
+
+  async function selectPerson(id) {
+    currentPersonId = id;
+    currentTopicId = null;
+    currentEntryId = null;
+    const person = await get("persons", id);
+    if (!person) return;
+    $("personTitleDisplay").textContent = person.name || "1:1";
+    setView("person");
+    await new Promise((r) => requestAnimationFrame(r));
+    ensureQuillPerson().root.innerHTML = person.content || "";
+    await renderSidebar();
+    await renderAttachmentsPerson();
+    await renderActionItemsForSource("person", id, $("actionItemsPerson"));
+    await renderPersonEntries(id);
+  }
+
+  async function selectEntry(entryId) {
+    const entry = await get("oneOnOneEntries", entryId);
+    if (!entry) return;
+    currentEntryId = entryId;
+    currentPersonId = entry.personId;
+    const person = await get("persons", entry.personId);
+    $("entryBreadcrumb").textContent = (person?.name || "1:1") + " — note";
+    setView("entry");
+    await new Promise((r) => requestAnimationFrame(r));
+    ensureQuillEntry().root.innerHTML = entry.content || "";
+    await renderSidebar();
+    await renderAttachmentsEntry();
+    await renderActionItemsForSource("oneOnOne", entryId, $("actionItemsEntry"));
+  }
+
+  async function renderPersonEntries(personId) {
+    const all = await getAll("oneOnOneEntries");
+    const entries = all.filter((e) => e.personId === personId);
+    entries.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const container = $("personEntriesList");
+    if (entries.length === 0) {
+      container.innerHTML = '<p class="empty-state">No notes yet. Click "New 1:1 note".</p>';
+      return;
+    }
+    container.innerHTML = "";
+    const personStripe = colorForId(personId, PERSON_COLORS);
+    entries.forEach((e) => {
+      const card = document.createElement("div");
+      card.className = "entry-card";
+      card.style.borderLeft = "3px solid " + personStripe;
+      const dateStr = e.createdAt ? new Date(e.createdAt).toLocaleString() : "";
+      const header = document.createElement("div");
+      header.className = "entry-card-header";
+      header.innerHTML = `
+        <span>${escapeHtml(dateStr || "Note")}</span>
+        <button type="button" class="btn btn-primary btn-open-entry" data-entry="${e.id}">Open</button>
+      `;
+      const preview = document.createElement("div");
+      preview.className = "entry-card-preview";
+      if (e.content && e.content.replace(/<[^>]+>/g, "").trim()) {
+        preview.innerHTML = e.content;
+      } else {
+        preview.innerHTML = "<p style=\"color:var(--muted);margin:0\">(empty)</p>";
+      }
+      card.appendChild(header);
+      card.appendChild(preview);
+      card.querySelector(".btn-open-entry").addEventListener("click", () => selectEntry(e.id));
+      container.appendChild(card);
+    });
+  }
+
+  async function renderAttachmentsTopic() {
+    await renderAttachmentList("topic", currentTopicId, $("attachmentsTopic"));
+  }
+
+  async function renderAttachmentsEntry() {
+    await renderAttachmentList("oneOnOne", currentEntryId, $("attachmentsEntry"));
+  }
+
+  async function renderAttachmentsPerson() {
+    await renderAttachmentList("person", currentPersonId, $("attachmentsPerson"));
+  }
+
+  async function renderAttachmentList(parentType, parentId, ulEl) {
+    if (!parentId) {
+      ulEl.innerHTML = "";
+      return;
+    }
+    const all = await getAll("attachments");
+    const list = all.filter((a) => a.parentType === parentType && a.parentId === parentId);
+    ulEl.innerHTML = "";
+    list.forEach((att) => {
+      const li = document.createElement("li");
+      const isImg = att.mimeType && att.mimeType.startsWith("image/");
+      const link = document.createElement("a");
+      link.href = "#";
+      link.textContent = att.fileName;
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        downloadAttachment(att);
+      });
+      li.appendChild(link);
+      if (isImg && att.data) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(new Blob([att.data], { type: att.mimeType }));
+        img.alt = "";
+        img.style.maxHeight = "40px";
+        img.style.borderRadius = "4px";
+        li.insertBefore(img, link);
+      }
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "remove-att";
+      rm.textContent = "Remove";
+      rm.addEventListener("click", () => removeAttachment(att.id));
+      li.appendChild(rm);
+      ulEl.appendChild(li);
+    });
+  }
+
+  function downloadAttachment(att) {
+    const blob = new Blob([att.data], { type: att.mimeType || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = att.fileName || "download";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function removeAttachment(id) {
+    await del("attachments", id);
+    if (viewMode === "topic") await renderAttachmentsTopic();
+    else if (viewMode === "entry") await renderAttachmentsEntry();
+    else if (viewMode === "person") await renderAttachmentsPerson();
+  }
+
+  async function addAttachments(parentType, parentId, files) {
+    if (!parentId || !files.length) return;
+    for (const file of files) {
+      const buf = await file.arrayBuffer();
+      await put("attachments", {
+        id: uid(),
+        parentType,
+        parentId,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        data: buf,
+        createdAt: Date.now()
+      });
+    }
+    if (viewMode === "topic") await renderAttachmentsTopic();
+    else if (viewMode === "entry") await renderAttachmentsEntry();
+    else if (viewMode === "person") await renderAttachmentsPerson();
+  }
+
+  function setupDropzone(dropEl, fileInput, parentTypeGetter, parentIdGetter) {
+    dropEl.addEventListener("click", () => fileInput.click());
+    dropEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+    dropEl.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropEl.classList.add("dragover");
+    });
+    dropEl.addEventListener("dragleave", () => dropEl.classList.remove("dragover"));
+    dropEl.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropEl.classList.remove("dragover");
+      const pid = parentIdGetter();
+      if (!pid) return;
+      addAttachments(parentTypeGetter(), pid, [...e.dataTransfer.files]);
+    });
+    fileInput.addEventListener("change", () => {
+      const pid = parentIdGetter();
+      if (!pid) return;
+      addAttachments(parentTypeGetter(), pid, [...fileInput.files]);
+      fileInput.value = "";
+    });
+  }
+
+  async function renderActionItemsForSource(sourceType, sourceId, containerEl) {
+    const all = await getAll("actionItems");
+    const items = all.filter((a) => a.sourceType === sourceType && a.sourceId === sourceId);
+    items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    containerEl.innerHTML = "";
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "action-item-row" + (item.done ? " done" : "");
+      row.innerHTML = `
+        <input type="checkbox" id="cb-${item.id}" ${item.done ? "checked" : ""} />
+        <label for="cb-${item.id}">${escapeHtml(item.text)}</label>
+      `;
+      const cb = row.querySelector("input");
+      cb.addEventListener("change", async () => {
+        item.done = cb.checked;
+        await put("actionItems", item);
+        row.classList.toggle("done", item.done);
+        if (viewMode === "actions") await renderGlobalActionItems();
+        if (viewMode === "empty") await renderWelcomeActionItems();
+      });
+      containerEl.appendChild(row);
+    });
+  }
+
+  async function addActionItem(sourceType, sourceId, text) {
+    const t = (text || "").trim();
+    if (!t || !sourceId) return;
+    await put("actionItems", {
+      id: uid(),
+      text: t,
+      done: false,
+      sourceType,
+      sourceId,
+      createdAt: Date.now()
+    });
+    if (sourceType === "topic" && viewMode === "topic") {
+      await renderActionItemsForSource("topic", currentTopicId, $("actionItemsTopic"));
+    }
+    if (sourceType === "oneOnOne" && viewMode === "entry") {
+      await renderActionItemsForSource("oneOnOne", currentEntryId, $("actionItemsEntry"));
+    }
+    if (sourceType === "person" && viewMode === "person") {
+      await renderActionItemsForSource("person", currentPersonId, $("actionItemsPerson"));
+    }
+    if (viewMode === "actions") await renderGlobalActionItems();
+    if (viewMode === "empty") await renderWelcomeActionItems();
+  }
+
+  async function renderGlobalActionItems() {
+    const topics = await getAll("topics");
+    const persons = await getAll("persons");
+    const entries = await getAll("oneOnOneEntries");
+    const actions = await getAll("actionItems");
+    const topicMap = Object.fromEntries(topics.map((t) => [t.id, t]));
+    const entryMap = Object.fromEntries(entries.map((e) => [e.id, e]));
+    const personMap = Object.fromEntries(persons.map((p) => [p.id, p]));
+
+    const byGroup = {};
+    actions.forEach((a) => {
+      let key, title;
+      if (a.sourceType === "topic") {
+        key = "topic:" + a.sourceId;
+        title = "Topic: " + (topicMap[a.sourceId]?.name || "Unknown");
+      } else if (a.sourceType === "person") {
+        key = "person:" + a.sourceId;
+        title = "1:1 — " + (personMap[a.sourceId]?.name || "Person") + " (profile)";
+      } else {
+        key = "entry:" + a.sourceId;
+        const en = entryMap[a.sourceId];
+        const pn = en ? personMap[en.personId]?.name : null;
+        title = "1:1 — " + (pn || "Person") + " (meeting note)";
+      }
+      if (!byGroup[key]) byGroup[key] = { title, items: [] };
+      byGroup[key].items.push(a);
+    });
+
+    const wrap = $("globalActionItems");
+    const keys = Object.keys(byGroup);
+    if (keys.length === 0) {
+      wrap.innerHTML = '<p class="empty-state">No action items yet. Add them from a topic, a 1:1 profile, or a meeting note.</p>';
+      return;
+    }
+    wrap.innerHTML = "";
+    keys.forEach((key) => {
+      const g = byGroup[key];
+      g.items.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      const section = document.createElement("div");
+      section.className = "global-ai-group";
+      let groupColor = "#6366f1";
+      if (key.startsWith("topic:")) {
+        groupColor = colorForId(key.slice(6), TOPIC_COLORS);
+      } else if (key.startsWith("person:")) {
+        groupColor = colorForId(key.slice(7), PERSON_COLORS);
+      } else if (key.startsWith("entry:")) {
+        const en = entryMap[key.slice(6)];
+        groupColor = en ? colorForId(en.personId, PERSON_COLORS) : "#64748b";
+      }
+      section.style.setProperty("--group-accent", groupColor);
+      const h3 = document.createElement("h3");
+      const dot = document.createElement("span");
+      dot.className = "global-ai-dot";
+      dot.style.backgroundColor = groupColor;
+      dot.title = "Source color";
+      h3.appendChild(dot);
+      h3.appendChild(document.createTextNode(g.title));
+      section.appendChild(h3);
+      g.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "action-item-row" + (item.done ? " done" : "");
+        row.innerHTML = `
+          <input type="checkbox" id="gcb-${item.id}" ${item.done ? "checked" : ""} />
+          <label for="gcb-${item.id}">${escapeHtml(item.text)}</label>
+        `;
+        const cb = row.querySelector("input");
+        cb.addEventListener("change", async () => {
+          item.done = cb.checked;
+          await put("actionItems", item);
+          row.classList.toggle("done", item.done);
+          if (viewMode === "empty") await renderWelcomeActionItems();
+        });
+        section.appendChild(row);
+      });
+      wrap.appendChild(section);
+    });
+  }
+
+  function openModal(title, initial, onOk) {
+    const overlay = $("modalOverlay");
+    const okBtn = $("modalOk");
+    const cancelBtn = $("modalCancel");
+    const inp = $("modalInput");
+    $("modalTitle").textContent = title;
+    inp.value = initial || "";
+    overlay.classList.add("open");
+    inp.focus();
+
+    function cleanup() {
+      overlay.classList.remove("open");
+      okBtn.removeEventListener("click", onOkClick);
+      cancelBtn.removeEventListener("click", onCancelClick);
+      inp.removeEventListener("keydown", onKey);
+    }
+    function onOkClick() {
+      const v = inp.value.trim();
+      cleanup();
+      if (v) onOk(v);
+    }
+    function onCancelClick() {
+      cleanup();
+    }
+    function onKey(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onOkClick();
+      }
+      if (e.key === "Escape") onCancelClick();
+    }
+    okBtn.addEventListener("click", onOkClick);
+    cancelBtn.addEventListener("click", onCancelClick);
+    inp.addEventListener("keydown", onKey);
+  }
+
+  async function deleteTopicConfirm(id) {
+    if (!confirm("Delete this topic and its attachments & linked action items?")) return;
+    const atts = await getAll("attachments");
+    for (const a of atts) {
+      if (a.parentType === "topic" && a.parentId === id) await del("attachments", a.id);
+    }
+    const acts = await getAll("actionItems");
+    for (const a of acts) {
+      if (a.sourceType === "topic" && a.sourceId === id) await del("actionItems", a.id);
+    }
+    await del("topics", id);
+    if (currentTopicId === id) {
+      currentTopicId = null;
+      setView("empty");
+    }
+    await renderSidebar();
+  }
+
+  async function deletePersonConfirm(id) {
+    if (!confirm("Delete this person, all their 1:1 notes, attachments, and action items?")) return;
+    let attsAll = await getAll("attachments");
+    for (const a of attsAll) {
+      if (a.parentType === "person" && a.parentId === id) await del("attachments", a.id);
+    }
+    let actsAll = await getAll("actionItems");
+    for (const a of actsAll) {
+      if (a.sourceType === "person" && a.sourceId === id) await del("actionItems", a.id);
+    }
+    const entries = (await getAll("oneOnOneEntries")).filter((e) => e.personId === id);
+    for (const e of entries) {
+      const atts = await getAll("attachments");
+      for (const a of atts) {
+        if (a.parentType === "oneOnOne" && a.parentId === e.id) await del("attachments", a.id);
+      }
+      const acts = await getAll("actionItems");
+      for (const a of acts) {
+        if (a.sourceType === "oneOnOne" && a.sourceId === e.id) await del("actionItems", a.id);
+      }
+      await del("oneOnOneEntries", e.id);
+    }
+    await del("persons", id);
+    if (currentPersonId === id || entries.some((e) => e.id === currentEntryId)) {
+      currentPersonId = null;
+      currentEntryId = null;
+      setView("empty");
+    }
+    await renderSidebar();
+  }
+
+  async function saveTopic() {
+    if (!currentTopicId) return;
+    const topic = await get("topics", currentTopicId);
+    if (!topic) return;
+    topic.name = $("topicTitleInput").value.trim() || "Untitled";
+    topic.content = quillTopic ? quillTopic.root.innerHTML : topic.content || "";
+    topic.updatedAt = Date.now();
+    await put("topics", topic);
+    await renderSidebar();
+  }
+
+  async function saveEntry() {
+    if (!currentEntryId) return;
+    const entry = await get("oneOnOneEntries", currentEntryId);
+    if (!entry) return;
+    entry.content = quillEntry ? quillEntry.root.innerHTML : entry.content || "";
+    entry.updatedAt = Date.now();
+    await put("oneOnOneEntries", entry);
+    await renderPersonEntries(entry.personId);
+  }
+
+  async function savePerson() {
+    if (!currentPersonId) return;
+    const person = await get("persons", currentPersonId);
+    if (!person) return;
+    person.content = quillPerson ? quillPerson.root.innerHTML : person.content || "";
+    await put("persons", person);
+    await renderSidebar();
+  }
+
+  $("btnAddTopic").addEventListener("click", () => {
+    openModal("New topic", "", async (name) => {
+      const id = uid();
+      await put("topics", {
+        id,
+        name,
+        content: "",
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+      await renderSidebar();
+      selectTopic(id);
+    });
+  });
+
+  $("btnAddPerson").addEventListener("click", () => {
+    openModal("Person name (1:1)", "", async (name) => {
+      const id = uid();
+      await put("persons", { id, name, content: "", createdAt: Date.now() });
+      await renderSidebar();
+      selectPerson(id);
+    });
+  });
+
+  $("btnSavePerson").addEventListener("click", () => savePerson());
+  $("btnCopyPerson").addEventListener("click", () => {
+    const html = quillPerson ? quillPerson.root.innerHTML : "";
+    copyToClipboard(stripHtml(html));
+  });
+
+  $("btnAddActionPerson").addEventListener("click", async () => {
+    const inp = $("newActionPerson");
+    await addActionItem("person", currentPersonId, inp.value);
+    inp.value = "";
+  });
+  $("newActionPerson").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("btnAddActionPerson").click();
+    }
+  });
+
+  $("btnSaveTopic").addEventListener("click", () => saveTopic());
+  $("btnDeleteTopic").addEventListener("click", () => {
+    if (currentTopicId) deleteTopicConfirm(currentTopicId);
+  });
+  $("btnCopyTopic").addEventListener("click", () => {
+    const html = quillTopic ? quillTopic.root.innerHTML : "";
+    copyToClipboard(stripHtml(html));
+  });
+
+  $("btnAddOneOnOne").addEventListener("click", async () => {
+    if (!currentPersonId) return;
+    const id = uid();
+    await put("oneOnOneEntries", {
+      id,
+      personId: currentPersonId,
+      content: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    await renderPersonEntries(currentPersonId);
+    selectEntry(id);
+  });
+
+  $("btnDeletePerson").addEventListener("click", () => {
+    if (currentPersonId) deletePersonConfirm(currentPersonId);
+  });
+
+  $("btnSaveEntry").addEventListener("click", () => saveEntry());
+  $("btnDeleteEntry").addEventListener("click", async () => {
+    if (!currentEntryId) return;
+    if (!confirm("Delete this 1:1 note?")) return;
+    const pid = (await get("oneOnOneEntries", currentEntryId))?.personId;
+    const atts = await getAll("attachments");
+    for (const a of atts) {
+      if (a.parentType === "oneOnOne" && a.parentId === currentEntryId) await del("attachments", a.id);
+    }
+    const acts = await getAll("actionItems");
+    for (const a of acts) {
+      if (a.sourceType === "oneOnOne" && a.sourceId === currentEntryId) await del("actionItems", a.id);
+    }
+    await del("oneOnOneEntries", currentEntryId);
+    currentEntryId = null;
+    if (pid) {
+      await selectPerson(pid);
+      await renderPersonEntries(pid);
+    } else setView("empty");
+    await renderSidebar();
+  });
+
+  $("btnCopyEntry").addEventListener("click", () => {
+    const html = quillEntry ? quillEntry.root.innerHTML : "";
+    copyToClipboard(stripHtml(html));
+  });
+
+  $("btnActionItemsPage").addEventListener("click", async () => {
+    currentTopicId = null;
+    currentPersonId = null;
+    currentEntryId = null;
+    setView("actions");
+    await renderGlobalActionItems();
+    await renderSidebar();
+  });
+
+  $("btnAddActionTopic").addEventListener("click", async () => {
+    const inp = $("newActionTopic");
+    await addActionItem("topic", currentTopicId, inp.value);
+    inp.value = "";
+  });
+  $("newActionTopic").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("btnAddActionTopic").click();
+    }
+  });
+
+  $("btnAddActionEntry").addEventListener("click", async () => {
+    const inp = $("newActionEntry");
+    await addActionItem("oneOnOne", currentEntryId, inp.value);
+    inp.value = "";
+  });
+  $("newActionEntry").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("btnAddActionEntry").click();
+    }
+  });
+
+  setupDropzone(
+    $("dropzoneTopic"),
+    $("fileInputTopic"),
+    () => "topic",
+    () => currentTopicId
+  );
+  setupDropzone(
+    $("dropzoneEntry"),
+    $("fileInputEntry"),
+    () => "oneOnOne",
+    () => currentEntryId
+  );
+  setupDropzone(
+    $("dropzonePerson"),
+    $("fileInputPerson"),
+    () => "person",
+    () => currentPersonId
+  );
+
+  $("btnGoHome").addEventListener("click", async () => {
+    setView("empty");
+    await renderSidebar();
+  });
+
+  async function createTopicFromWelcome() {
+    const name = $("welcomeNewTopicName").value.trim();
+    if (!name) return;
+    const id = uid();
+    await put("topics", {
+      id,
+      name,
+      content: "",
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    $("welcomeNewTopicName").value = "";
+    await renderSidebar();
+    selectTopic(id);
+  }
+
+  $("btnWelcomeCreateTopic").addEventListener("click", () => createTopicFromWelcome());
+  $("welcomeNewTopicName").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      createTopicFromWelcome();
+    }
+  });
+
+  $("btnWelcomeViewAllActions").addEventListener("click", async () => {
+    currentTopicId = null;
+    currentPersonId = null;
+    currentEntryId = null;
+    setView("actions");
+    await renderGlobalActionItems();
+    await renderSidebar();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+      e.preventDefault();
+      if (viewMode === "topic") saveTopic();
+      else if (viewMode === "entry") saveEntry();
+      else if (viewMode === "person") savePerson();
+    }
+  });
+
+  openDB()
+    .then(() => renderSidebar())
+    .then(() => updateMainStripe())
+    .then(() => renderWelcomePanel())
+    .catch((err) => {
+      console.error(err);
+      document.body.innerHTML = "<p style='padding:2rem;color:#dc2626;font-family:system-ui,sans-serif'>Could not open database.</p>";
+    });
+})();
+  </script>
+</body>
+</html>
